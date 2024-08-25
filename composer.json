@@ -1,0 +1,18 @@
+{
+    "name": "stuartwilsondev/circuitbreaker",
+    "description": "PHP Circuit Breaker implementation",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Stuartwilsondev\\Circuitbreaker\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Stuart Wilson",
+            "email": "stuart@stuartwilsondev.com"
+        }
+    ],
+    "require": {}
+}

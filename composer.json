@@ -3,6 +3,9 @@
     "description": "PHP Circuit Breaker implementation",
     "type": "library",
     "license": "MIT",
+    "require": {
+        "php": "^8.2"
+    },
     "autoload": {
         "psr-4": {
             "Stuartwilsondev\\Circuitbreaker\\": "src/"
@@ -14,5 +17,7 @@
             "email": "stuart@stuartwilsondev.com"
         }
     ],
-    "require": {}
+    "require-dev": {
+        "phpunit/phpunit": "^11.3"
+    }
 }

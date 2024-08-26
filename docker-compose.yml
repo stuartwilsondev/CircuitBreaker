@@ -1,0 +1,17 @@
+services:
+  php:
+    build: .
+    ports:
+      - "9003:9003"
+    volumes:
+      - .:/var/www/html
+    environment:
+      XDEBUG_MODE: debug
+
+  composer:
+    image: composer/composer
+    working_dir: /var/www/html
+    environment:
+      - COMPOSER_ALLOW_SUPER_USER=1
+    volumes:
+      - ".:/var/www/html:rw,cached"

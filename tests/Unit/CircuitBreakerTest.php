@@ -11,6 +11,7 @@ use Stuartwilsondev\CircuitBreaker\CircuitBreakerStorageInterface;
 use Stuartwilsondev\CircuitBreaker\Exceptions\HalfOpenCircuitException;
 use Stuartwilsondev\CircuitBreaker\Exceptions\OpenCircuitException;
 use Exception;
+use DateTimeImmutable;
 
 class CircuitBreakerTest extends TestCase
 {
@@ -78,5 +79,32 @@ class CircuitBreakerTest extends TestCase
         $circuitBreaker->call('test-api', function (): void {
             throw new Exception("Half-Open API call failed");
         });
+    }
+
+    public function testCircuitBreakerTransitionsToHalfOpenAfterTimeout(): void
+    {
+        $storage = $this->createMock(CircuitBreakerStorageInterface::class);
+
+        $storage->method('getState')->willReturnOnConsecutiveCalls(
+            CircuitBreakerState::OPEN,
+            CircuitBreakerState::HALF_OPEN
+        );
+
+        $storage->method('getLastOpenDateTime')->willReturn(new DateTimeImmutable('-6 seconds'));
+
+        $serviceKey = 'test-api';
+        $storage->expects($this->once())
+            ->method('saveState')
+            ->with($serviceKey, CircuitBreakerState::HALF_OPEN);
+
+        $circuitBreaker = new CircuitBreaker($storage, 3, 5);
+
+        $this->expectException(HalfOpenCircuitException::class);
+        $this->expectExceptionMessage('Circuit is half-open for "test-api"');
+
+        $circuitBreaker->call($serviceKey, function (): string {
+            return 'Success';
+        });
+
     }
 }

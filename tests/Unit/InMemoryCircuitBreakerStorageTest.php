@@ -7,6 +7,7 @@ namespace Stuartwilsondev\CircuitBreaker\Tests\Unit;
 use PHPUnit\Framework\TestCase;
 use Stuartwilsondev\CircuitBreaker\CircuitBreakerState;
 use Stuartwilsondev\CircuitBreaker\InMemoryCircuitBreakerStorage;
+use DateTimeImmutable;
 
 class InMemoryCircuitBreakerStorageTest extends TestCase
 {
@@ -68,5 +69,18 @@ class InMemoryCircuitBreakerStorageTest extends TestCase
 
         $storage->resetFailures($serviceName);
         $this->assertEquals(0, $storage->getFailures($serviceName));
+    }
+
+    public function testSetAndGetLastOpenDateTime(): void
+    {
+        $storage = new InMemoryCircuitBreakerStorage();
+        $serviceName = 'test-api';
+
+        $lastOpenDatetime = $storage->getLastOpenDateTime($serviceName);
+        $this->assertNull($lastOpenDatetime);
+
+        $newLastOpenDatetime = new DateTimeImmutable();
+        $storage->setLastOpenDateTime($serviceName, $newLastOpenDatetime);
+        $this->assertEquals($newLastOpenDatetime, $storage->getLastOpenDateTime($serviceName));
     }
 }

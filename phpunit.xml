@@ -3,10 +3,10 @@
         <testsuite name="Unit">
             <directory>./tests/Unit</directory>
         </testsuite>
-        <!--<testsuite name="Integration">
+        <testsuite name="Integration">
             <directory>tests/Integration</directory>
         </testsuite>
-        <testsuite name="Functional">
+        <!--<testsuite name="Functional">
             <directory>tests/Functional</directory>
         </testsuite>-->
     </testsuites>

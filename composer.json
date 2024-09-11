@@ -8,12 +8,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Stuartwilsondev\\Circuitbreaker\\": "src/"
+            "Stuartwilsondev\\CircuitBreaker\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Stuartwilsondev\\Circuitbreaker\\Tests\\": "tests/"
+            "Stuartwilsondev\\CircuitBreaker\\Tests\\": "tests/"
         }
     },
     "authors": [

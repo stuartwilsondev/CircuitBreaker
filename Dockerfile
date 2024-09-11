@@ -1,4 +1,4 @@
-FROM php:8.2
+FROM php:8.2-fpm
 
 # Install dependencies and tools
 RUN apt-get update && apt-get install -y \

@@ -47,7 +47,7 @@ Docker config added for ease of development and testing.
 
 Install dependencies:
 ```shell
-docker compose run --rm composer install
+docker compose run --rm composer composer install
 ```
 
 Run the tests (when they exist)

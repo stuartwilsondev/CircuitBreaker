@@ -4,9 +4,11 @@ services:
     ports:
       - "9003:9003"
     volumes:
-      - .:/var/www/html
+      - ./:/var/www/html:rw,cached
     environment:
       XDEBUG_MODE: debug
+      XDEBUG_CONFIG: "client_host=host.docker.internal"
+    command: bash -c "php -S 0.0.0.0:8000 -t /var/www/html"
 
   composer:
     image: composer/composer
@@ -14,4 +16,4 @@ services:
     environment:
       - COMPOSER_ALLOW_SUPER_USER=1
     volumes:
-      - ".:/var/www/html:rw,cached"
+      - ./:/var/www/html:rw,cached

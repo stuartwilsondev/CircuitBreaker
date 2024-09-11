@@ -11,6 +11,11 @@
             "Stuartwilsondev\\Circuitbreaker\\": "src/"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "Stuartwilsondev\\Circuitbreaker\\Tests\\": "tests/"
+        }
+    },
     "authors": [
         {
             "name": "Stuart Wilson",
@@ -18,6 +23,14 @@
         }
     ],
     "require-dev": {
-        "phpunit/phpunit": "^11.3"
+        "phpunit/phpunit": "^11.3",
+        "rector/rector": "^1.2",
+        "phpstan/phpstan": "^1.12"
+    },
+    "scripts": {
+        "phpunit": "phpunit",
+        "phpstan": "phpstan analyse",
+        "rector": "rector process --dry-run",
+        "rector-fix": "rector process"
     }
 }

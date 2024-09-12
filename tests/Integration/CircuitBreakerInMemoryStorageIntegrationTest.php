@@ -13,7 +13,6 @@ use Exception;
 
 class CircuitBreakerInMemoryStorageIntegrationTest extends TestCase
 {
-
     public function testCircuitBreakerWorksWithInMemoryStorage(): void
     {
         $storage = new InMemoryCircuitBreakerStorage();

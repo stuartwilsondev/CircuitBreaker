@@ -11,7 +11,6 @@ use DateTimeImmutable;
 
 class InMemoryCircuitBreakerStorageTest extends TestCase
 {
-
     public function testSaveAndRetrieveState(): void
     {
         $storage = new InMemoryCircuitBreakerStorage();

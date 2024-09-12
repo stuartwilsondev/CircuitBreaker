@@ -44,13 +44,38 @@ It should not require any specific framework or dependencies.
 ## Getting Started
 
 Docker config added for ease of development and testing.
+You'll need docker installed and running
+
+
+If you're able to run make, you can use the following commands:
+
+To build the project:
+```shell
+make build
+```
+
+Run the tests:
+```shell
+make tests-all
+```
+
+Run code quality checks (phpstan and rector):
+```shell
+make checks
+```
+
+Otherwise
 
 Install dependencies:
 ```shell
 docker compose run --rm composer composer install
 ```
 
-Run the tests (when they exist)
+Run the tests:
 ```shell
 docker compose run --rm php vendor/bin/phpunit tests/
 ```
+
+
+
+

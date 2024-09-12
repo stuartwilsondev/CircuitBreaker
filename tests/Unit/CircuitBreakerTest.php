@@ -31,7 +31,7 @@ class CircuitBreakerTest extends TestCase
         $this->assertEquals('Success', $result);
     }
 
-    public function testCircuitBreakerOpensAfterFailureThreshold(): void
+    public function testCircuitBreakerTransitionsToOpensStateAfterFailureThreshold(): void
     {
 
         $storage = $this->createMock(CircuitBreakerStorageInterface::class);
@@ -49,7 +49,7 @@ class CircuitBreakerTest extends TestCase
         });
     }
 
-    public function testCircuitBreakerRemainsOpen(): void
+    public function testCircuitBreakerRemainsInOpenState(): void
     {
         $storage = $this->createMock(CircuitBreakerStorageInterface::class);
 
@@ -74,37 +74,91 @@ class CircuitBreakerTest extends TestCase
 
         // Simulate API call in half-open state
         $this->expectException(HalfOpenCircuitException::class);
-        $this->expectExceptionMessage('Circuit is half-open for "test-api"');
+        $this->expectExceptionMessage('Half-open state failed for "test-api". Latest error: Half-Open API call failed');
 
         $circuitBreaker->call('test-api', function (): void {
             throw new Exception("Half-Open API call failed");
         });
     }
 
-    public function testCircuitBreakerTransitionsToHalfOpenAfterTimeout(): void
+    public function testCircuitBreakerTransitionsFromOpenStateToHalfOpenStateAfterTimeout(): void
     {
         $storage = $this->createMock(CircuitBreakerStorageInterface::class);
-
-        $storage->method('getState')->willReturnOnConsecutiveCalls(
+        $storage->method('getState')->with('test-api')->willReturnOnConsecutiveCalls(
             CircuitBreakerState::OPEN,
-            CircuitBreakerState::HALF_OPEN
-        );
+            CircuitBreakerState::HALF_OPEN);
 
         $storage->method('getLastOpenDateTime')->willReturn(new DateTimeImmutable('-6 seconds'));
 
+        //Add callback to capture that calls to saveState are made with the expected arguments (asserted later)
         $serviceKey = 'test-api';
-        $storage->expects($this->once())
-            ->method('saveState')
-            ->with($serviceKey, CircuitBreakerState::HALF_OPEN);
+        $callArgs = [];
+        $storage->method('saveState')
+            ->willReturnCallback(function($key, $state) use (&$callArgs): void {
+                $callArgs[] = [$key, $state];
+            });
 
         $circuitBreaker = new CircuitBreaker($storage, 3, 5);
-
-        $this->expectException(HalfOpenCircuitException::class);
-        $this->expectExceptionMessage('Circuit is half-open for "test-api"');
 
         $circuitBreaker->call($serviceKey, function (): string {
             return 'Success';
         });
 
+        // Assert that the calls to saveState were made with the expected arguments in the correct order
+        $this->assertSame([$serviceKey, CircuitBreakerState::HALF_OPEN], $callArgs[0]);
+    }
+
+    public function testHalfOpenStateTransitionsToClosedStateAfterSuccess(): void
+    {
+        $storage = $this->createMock(CircuitBreakerStorageInterface::class);
+        $storage->method('getState')->with('test-api')->willReturnOnConsecutiveCalls(
+            CircuitBreakerState::HALF_OPEN,
+            CircuitBreakerState::HALF_OPEN);
+        $storage->method('getLastOpenDateTime')->willReturn(new DateTimeImmutable('-6 seconds'));
+
+        $circuitBreaker = new CircuitBreaker($storage, 3, 5); // Timeout is set to 5 seconds
+
+        //Add callback to capture that calls to saveState are made with the expected arguments (asserted later)
+        $serviceKey = 'test-api';
+        $callArgs = [];
+        $storage->method('saveState')
+            ->willReturnCallback(function($key, $state) use (&$callArgs): void {
+                $callArgs[] = [$key, $state];
+            });
+
+        $circuitBreaker->call($serviceKey, function (): string {
+            return 'Success';
+        });
+
+        // Assert that the calls to saveState were made with the expected arguments in the correct order
+        $this->assertSame([$serviceKey, CircuitBreakerState::CLOSED], $callArgs[0]);
+    }
+
+    public function testHalfOpenStateFailsAndReopensCircuitByTransitioningToOpenState(): void
+    {
+        $storage = $this->createMock(CircuitBreakerStorageInterface::class);
+        $storage->method('getState')->with('test-api')->willReturnOnConsecutiveCalls(
+            CircuitBreakerState::HALF_OPEN,
+            CircuitBreakerState::HALF_OPEN);
+
+        $circuitBreaker = new CircuitBreaker($storage, 3, 5); // Timeout is set to 5 seconds
+
+        //Add callback to capture that calls to saveState are made with the expected arguments (asserted later)
+        $serviceKey = 'test-api';
+        $callArgs = [];
+        $storage->method('saveState')
+            ->willReturnCallback(function($key, $state) use (&$callArgs): void {
+                $callArgs[] = [$key, $state];
+            });
+
+        $this->expectException(HalfOpenCircuitException::class);
+        $this->expectExceptionMessage('Half-open state failed for "test-api". Latest error: Half-Open API call failed');
+
+        $circuitBreaker->call($serviceKey, function (): string {
+            throw new Exception("Half-Open API call failed");
+        });
+
+        // Assert that the calls to saveState were made with the expected arguments in the correct order
+        $this->assertSame([$serviceKey, CircuitBreakerState::OPEN], $callArgs[0]);
     }
 }

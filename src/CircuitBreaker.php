@@ -14,7 +14,7 @@ readonly class CircuitBreaker
     public function __construct(
         private CircuitBreakerStorageInterface $storage,
         private int                            $failureThreshold = 3,
-        private int                            $timeoutInSeconds = 5
+        private int                            $timeoutInSeconds = 5,
     ) {}
 
     /**
@@ -27,12 +27,44 @@ readonly class CircuitBreaker
             $this->handleOpenToHalfOpen($serviceKey);
         }
 
-        match ($this->storage->getState($serviceKey)) {
+        return match ($this->storage->getState($serviceKey)) {
             CircuitBreakerState::OPEN => throw new OpenCircuitException(sprintf('Circuit is open for "%s"', $serviceKey)),
-            CircuitBreakerState::HALF_OPEN => throw new HalfOpenCircuitException(sprintf('Circuit is half-open for "%s"', $serviceKey)),
-            default => null
+            CircuitBreakerState::HALF_OPEN => $this->handleHalfOpenToClosed($serviceKey, $apiCall),
+            default => $this->attemptApiCall($serviceKey, $apiCall)
         };
+    }
 
+    private function handleOpenToHalfOpen(string $serviceKey): void
+    {
+        $lastOpenTime = $this->storage->getLastOpenDateTime($serviceKey);
+        if (!$lastOpenTime instanceof DateTimeImmutable) {
+            $this->storage->setLastOpenDateTime($serviceKey, new DateTimeImmutable());
+            return;
+        }
+
+        $now = new DateTimeImmutable();
+        $interval = $now->diff($lastOpenTime);
+        if ($interval->s >= $this->timeoutInSeconds) {
+            $this->storage->saveState($serviceKey, CircuitBreakerState::HALF_OPEN);
+        }
+    }
+
+    private function handleHalfOpenToClosed(string $serviceKey, callable $apiCall): mixed
+    {
+        try {
+            $result = $apiCall();
+            $this->storage->saveState($serviceKey, CircuitBreakerState::CLOSED);
+            $this->storage->resetFailures($serviceKey);
+            return $result;
+        } catch (Exception $exception) {
+            $this->storage->saveState($serviceKey, CircuitBreakerState::OPEN);
+            $this->storage->setLastOpenDateTime($serviceKey, new DateTimeImmutable());
+            throw new HalfOpenCircuitException(sprintf('Half-open state failed for "%s". Latest error: %s', $serviceKey, $exception->getMessage()));
+        }
+    }
+
+    private function attemptApiCall(string $serviceKey, callable $apiCall): mixed
+    {
         try {
             $result = $apiCall();
             $this->storage->resetFailures($serviceKey);
@@ -45,25 +77,10 @@ readonly class CircuitBreaker
                 $this->storage->saveState($serviceKey, CircuitBreakerState::OPEN);
                 $this->storage->setLastOpenDateTime($serviceKey, new DateTimeImmutable());
 
-                throw new OpenCircuitException(sprintf('Circuit is open for "%s". Latest error: %s',$serviceKey, $exception->getMessage()));
+                throw new OpenCircuitException(sprintf('Circuit is open for "%s". Latest error: %s', $serviceKey, $exception->getMessage()));
             }
         }
 
         throw $exception;
-    }
-
-    private function handleOpenToHalfOpen(string $serviceKey): void
-    {
-        $lastOpenTime = $this->storage->getLastOpenDateTime($serviceKey);
-        if (!$lastOpenTime instanceof \DateTimeImmutable) {
-            $this->storage->setLastOpenDateTime($serviceKey, new DateTimeImmutable());
-            return;
-        }
-
-        $now = new DateTimeImmutable();
-        $interval = $now->diff($lastOpenTime);
-        if ($interval->s >= $this->timeoutInSeconds) {
-            $this->storage->saveState($serviceKey, CircuitBreakerState::HALF_OPEN);
-        }
     }
 }
